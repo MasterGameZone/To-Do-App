@@ -65,8 +65,11 @@
     }
     .task-checkbox {
         position: absolute;
-        right: -140px;
+        right: -130px;
     }
+    .nested-table td {
+  text-align: left;
+}
   </style>
 </head>
 <body>
@@ -402,81 +405,188 @@
         }, msUntilMidnight + 1000);
       }
 
-      // Render History Page with Collapsible Habit Details
-      function renderHistory() {
-        historyTitle.textContent = `${challengeData.name} - History`;
-        // Challenge History
-        const tableC = document.createElement('table');
-        const theadC = document.createElement('thead');
-        const trC = document.createElement('tr');
-        const dateTh = document.createElement('th'); dateTh.textContent = 'Date'; trC.appendChild(dateTh);
-        challengeData.tasks.forEach(task => { const th = document.createElement('th'); th.textContent = task; trC.appendChild(th); });
-        theadC.appendChild(trC); tableC.appendChild(theadC);
-        const tbodyC = document.createElement('tbody');
-        Object.keys(dailyStatus).sort().forEach(date => {
-          const row = document.createElement('tr');
-          const dateTd = document.createElement('td'); dateTd.textContent = date; row.appendChild(dateTd);
-          dailyStatus[date].forEach(flag => {
-            const td = document.createElement('td'); td.innerHTML = flag ? '&#10003;' : '&#8211;'; td.classList.add(flag ? 'completed' : 'missed'); row.appendChild(td);
-          });
-          tbodyC.appendChild(row);
-        });
-        tableC.appendChild(tbodyC);
-        challengeHistoryContainer.innerHTML = ''; challengeHistoryContainer.appendChild(tableC);
+      // Render History Page with Collapsible Details (Separate Columns for Each Item)
+// Render History Page with Collapsible Details (Separate Column for Tick/Percentage)
+function renderHistory() {
+  historyTitle.textContent = `${challengeData.name} - History`;
 
-        // Habit History (Collapsible)
-        const tableH = document.createElement('table');
-        const theadH = document.createElement('thead');
-        const trH = document.createElement('tr');
-        const colDateTh = document.createElement('th'); colDateTh.textContent = 'Date'; trH.appendChild(colDateTh);
-        const colOverallTh = document.createElement('th'); colOverallTh.textContent = 'Habit %'; trH.appendChild(colOverallTh);
-        theadH.appendChild(trH); tableH.appendChild(theadH);
-        const tbodyH = document.createElement('tbody');
-        Object.keys(habitStatus).sort().forEach(date => {
-          const ticksArr = habitStatus[date];
-          const totalDone = ticksArr.reduce((sum, t) => sum + t, 0);
-          const totalPossible = challengeData.habits.reduce((sum, h) => sum + h.count, 0);
-          const overallPct = totalPossible ? Math.round((totalDone / totalPossible) * 100) : 0;
+  // ---------- Challenge History (Collapsible) ----------
+  const tableC = document.createElement('table');
+  const theadC = document.createElement('thead');
+  const trC = document.createElement('tr');
+  const dateTh = document.createElement('th');
+  dateTh.textContent = 'Date';
+  trC.appendChild(dateTh);
+  const overallTh = document.createElement('th');
+  overallTh.textContent = 'Completion %';
+  trC.appendChild(overallTh);
+  theadC.appendChild(trC);
+  tableC.appendChild(theadC);
 
-          // Main row
-          const trMain = document.createElement('tr');
-          const tdDate = document.createElement('td');
-          tdDate.classList.add('date-cell');
-          tdDate.innerHTML = `${date} <span class="toggle-icon">▶</span>`;
-          trMain.appendChild(tdDate);
-          const tdPct = document.createElement('td'); tdPct.textContent = overallPct + '%'; trMain.appendChild(tdPct);
-          tbodyH.appendChild(trMain);
+  const tbodyC = document.createElement('tbody');
 
-          // Detail row (hidden by default)
-          const trDetail = document.createElement('tr');
-          trDetail.classList.add('detail-row');
-          trDetail.style.display = 'none';
-          const tdDetail = document.createElement('td');
-          tdDetail.setAttribute('colspan', '2');
-          const detailList = document.createElement('ul');
-          challengeData.habits.forEach((habit, idx) => {
-            const done = ticksArr[idx] || 0;
-            const pct = habit.count ? Math.round((done / habit.count) * 100) : 0;
-            const li = document.createElement('li');
-            li.textContent = `${habit.name}: ${done}/${habit.count} (${pct}%)`;
-            detailList.appendChild(li);
-          });
-          tdDetail.appendChild(detailList);
-          trDetail.appendChild(tdDetail);
-          tbodyH.appendChild(trDetail);
+  Object.keys(dailyStatus).sort().forEach(date => {
+    const statusArr = dailyStatus[date]; // Array of booleans for each task
+    const totalTasks = statusArr.length;
+    const doneCount = statusArr.reduce((sum, f) => sum + (f ? 1 : 0), 0);
+    const overallPct = totalTasks ? Math.round((doneCount / totalTasks) * 100) : 0;
 
-          // Toggle behavior: click on date-cell toggles detail
-          tdDate.addEventListener('click', () => {
-            const isHidden = trDetail.style.display === 'none';
-            trDetail.style.display = isHidden ? '' : 'none';
-            const icon = tdDate.querySelector('.toggle-icon');
-            icon.textContent = isHidden ? '▼' : '▶';
-          });
-        });
-        tableH.appendChild(tbodyH);
-        habitHistoryContainer.innerHTML = ''; habitHistoryContainer.appendChild(tableH);
-      }
+    // -- Main row for this date --
+    const trMainC = document.createElement('tr');
+    const tdDateC = document.createElement('td');
+    tdDateC.classList.add('date-cell');
+    tdDateC.innerHTML = `${date} <span class="toggle-icon">▶</span>`;
+    trMainC.appendChild(tdDateC);
 
+    const tdPctC = document.createElement('td');
+    tdPctC.textContent = overallPct + '%';
+    trMainC.appendChild(tdPctC);
+
+    tbodyC.appendChild(trMainC);
+
+    // -- Detail row (hidden by default) --
+    const trDetailC = document.createElement('tr');
+    trDetailC.classList.add('detail-row');
+    trDetailC.style.display = 'none';
+
+    // colspan="2" to span both Date and Completion % columns
+    const tdDetailC = document.createElement('td');
+    tdDetailC.setAttribute('colspan', '2');
+
+    // Nested table for tasks: दो कॉलम (Task Name | ✔/–)
+    const nestedTableC = document.createElement('table');
+    nestedTableC.classList.add('nested-table');
+    const nestedTheadC = document.createElement('thead');
+    const nestedTrHeadC = document.createElement('tr');
+    const nestedTaskNameTh = document.createElement('th');
+    nestedTaskNameTh.textContent = 'Task';
+    const nestedStatusTh = document.createElement('th');
+    nestedStatusTh.textContent = 'Status';
+    nestedTrHeadC.appendChild(nestedTaskNameTh);
+    nestedTrHeadC.appendChild(nestedStatusTh);
+    nestedTheadC.appendChild(nestedTrHeadC);
+    nestedTableC.appendChild(nestedTheadC);
+
+    const nestedTbodyC = document.createElement('tbody');
+    challengeData.tasks.forEach((taskName, idx) => {
+      const isDone = statusArr[idx];
+      const nestedTrC = document.createElement('tr');
+      const nestedNameTd = document.createElement('td');
+      nestedNameTd.textContent = taskName;
+      const nestedStatusTd = document.createElement('td');
+      nestedStatusTd.innerHTML = isDone ? '&#10003;' : '&#8211;';
+      nestedStatusTd.classList.add(isDone ? 'completed' : 'missed');
+      nestedTrC.appendChild(nestedNameTd);
+      nestedTrC.appendChild(nestedStatusTd);
+      nestedTbodyC.appendChild(nestedTrC);
+    });
+    nestedTableC.appendChild(nestedTbodyC);
+
+    tdDetailC.appendChild(nestedTableC);
+    trDetailC.appendChild(tdDetailC);
+    tbodyC.appendChild(trDetailC);
+
+    // Toggle behavior: click on date-cell toggles detail-row visibility
+    tdDateC.addEventListener('click', () => {
+      const isHidden = trDetailC.style.display === 'none';
+      trDetailC.style.display = isHidden ? '' : 'none';
+      const icon = tdDateC.querySelector('.toggle-icon');
+      icon.textContent = isHidden ? '▼' : '▶';
+    });
+  });
+
+  tableC.appendChild(tbodyC);
+  challengeHistoryContainer.innerHTML = '';
+  challengeHistoryContainer.appendChild(tableC);
+
+  // ---------- Habit History (Collapsible) ----------
+  const tableH = document.createElement('table');
+  const theadH = document.createElement('thead');
+  const trH = document.createElement('tr');
+  const colDateTh = document.createElement('th');
+  colDateTh.textContent = 'Date';
+  trH.appendChild(colDateTh);
+  const colOverallTh = document.createElement('th');
+  colOverallTh.textContent = 'Habit %';
+  trH.appendChild(colOverallTh);
+  theadH.appendChild(trH);
+  tableH.appendChild(theadH);
+
+  const tbodyH = document.createElement('tbody');
+
+  Object.keys(habitStatus).sort().forEach(date => {
+    const ticksArr = habitStatus[date];
+    const totalDone = ticksArr.reduce((sum, t) => sum + t, 0);
+    const totalPossible = challengeData.habits.reduce((sum, h) => sum + h.count, 0);
+    const overallPct = totalPossible ? Math.round((totalDone / totalPossible) * 100) : 0;
+
+    // -- Main row --
+    const trMain = document.createElement('tr');
+    const tdDate = document.createElement('td');
+    tdDate.classList.add('date-cell');
+    tdDate.innerHTML = `${date} <span class="toggle-icon">▶</span>`;
+    trMain.appendChild(tdDate);
+
+    const tdPct = document.createElement('td');
+    tdPct.textContent = overallPct + '%';
+    trMain.appendChild(tdPct);
+
+    tbodyH.appendChild(trMain);
+
+    // -- Detail row (hidden by default) --
+    const trDetail = document.createElement('tr');
+    trDetail.classList.add('detail-row');
+    trDetail.style.display = 'none';
+
+    const tdDetail = document.createElement('td');
+    tdDetail.setAttribute('colspan', '2');
+
+    // Nested table for habits: दो कॉलम (Habit Name | %)
+    const nestedTableH = document.createElement('table');
+    nestedTableH.classList.add('nested-table');
+    const nestedTheadH = document.createElement('thead');
+    const nestedTrHeadH = document.createElement('tr');
+    const nestedHabitNameTh = document.createElement('th');
+    nestedHabitNameTh.textContent = 'Habit';
+    const nestedPctTh = document.createElement('th');
+    nestedPctTh.textContent = '%';
+    nestedTrHeadH.appendChild(nestedHabitNameTh);
+    nestedTrHeadH.appendChild(nestedPctTh);
+    nestedTheadH.appendChild(nestedTrHeadH);
+    nestedTableH.appendChild(nestedTheadH);
+
+    const nestedTbodyH = document.createElement('tbody');
+    challengeData.habits.forEach((habit, idx) => {
+      const done = ticksArr[idx] || 0;
+      const pct = habit.count ? Math.round((done / habit.count) * 100) : 0;
+      const nestedTrH = document.createElement('tr');
+      const nestedNameTd = document.createElement('td');
+      nestedNameTd.textContent = habit.name;
+      const nestedPctTd = document.createElement('td');
+      nestedPctTd.textContent = pct + '%';
+      nestedTrH.appendChild(nestedNameTd);
+      nestedTrH.appendChild(nestedPctTd);
+      nestedTbodyH.appendChild(nestedTrH);
+    });
+    nestedTableH.appendChild(nestedTbodyH);
+
+    tdDetail.appendChild(nestedTableH);
+    trDetail.appendChild(tdDetail);
+    tbodyH.appendChild(trDetail);
+
+    // Toggle behavior: click on date-cell toggles detail-row visibility
+    tdDate.addEventListener('click', () => {
+      const isHidden = trDetail.style.display === 'none';
+      trDetail.style.display = isHidden ? '' : 'none';
+      const icon = tdDate.querySelector('.toggle-icon');
+      icon.textContent = isHidden ? '▼' : '▶';
+    });
+  });
+
+  tableH.appendChild(tbodyH);
+  habitHistoryContainer.innerHTML = '';
+  habitHistoryContainer.appendChild(tableH);
+}
       // Navigation
       viewHistoryBtn.addEventListener('click', showHistoryPage);
       backToDailyBtn.addEventListener('click', showDailyPage);
